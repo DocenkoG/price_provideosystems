@@ -363,8 +363,6 @@ def make_loger():
 def processing(cfgFName):
     log.info('----------------------- Processing '+cfgFName )
     cfg = config_read(cfgFName)
-    filename_out = cfg.get('basic','filename_out')
-    filename_in  = cfg.get('basic','filename_in')
     filename_new = cfg.get('download','filename_new')
     
     if cfg.has_section('download'):
@@ -373,12 +371,7 @@ def processing(cfgFName):
         #os.system( 'brullov_converter_xlsx.xlsm')
         #convert_csv2csv(cfg)
         convert_excel2csv(cfg)
-    folderName = os.path.basename(os.getcwd())
-    if os.name == 'nt' :
-        if os.path.exists(filename_out)  : shutil.copy2(filename_out , 'c://AV_PROM/prices/' + folderName +'/'+filename_out)
-        if os.path.exists('python.log')  : shutil.copy2('python.log',  'c://AV_PROM/prices/' + folderName +'/python.log')
-        if os.path.exists('python.log.1'): shutil.copy2('python.log.1','c://AV_PROM/prices/' + folderName +'/python.log.1')
-    
+
 
 
 def main( dealerName):
