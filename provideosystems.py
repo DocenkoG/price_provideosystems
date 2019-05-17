@@ -337,16 +337,15 @@ def config_read( cfgFName ):
 
 
 def is_file_fresh(fileName, qty_days):
-    qty_seconds = qty_days *24*60*60 
-    if os.path.exists( fileName):
+    if os.path.exists(fileName):
         price_datetime = os.path.getmtime(fileName)
     else:
         log.error('Не найден файл  '+ fileName)
         return False
 
-    if price_datetime+qty_seconds < time.time() :
-        file_age = round((time.time()-price_datetime)/24/60/60)
-        log.error('Файл "'+fileName+'" устарел!  Допустимый период '+ str(qty_days)+' дней, а ему ' + str(file_age) )
+    file_age = round((time.time() - price_datetime) / 24 / 60 / 60)
+    if file_age > qty_days :
+        log.error('Файл "' + fileName + '" устарел! Допустимый период ' + str(qty_days)+' дней, а ему ' + str(file_age))
         return False
     else:
         return True
@@ -374,21 +373,37 @@ def processing(cfgFName):
 
 
 
-def main( dealerName):
+def main(dealerName):
     """ Обработка прайсов выполняется согласно файлов конфигурации.
     Для этого в текущей папке должны быть файлы конфигурации, описывающие
-    свойства файла и правила обработки. По одному конфигу на каждый 
+    свойства файла и правила обработки. По одному конфигу на каждый
     прайс или раздел прайса со своими правилами обработки
     """
     make_loger()
-    log.info('          '+dealerName )
+    log.info('          ' + dealerName)
+
+    rc_download = False
+    if  os.path.exists('getting.cfg'):
+        cfg = config_read('getting.cfg')
+        filename_new = cfg.get('basic','filename_new')
+
+        if cfg.has_section('download'):
+            rc_download = download(cfg)
+        if not(rc_download==True or is_file_fresh( filename_new, int(cfg.get('basic','срок годности')))):
+            return False
+
     for cfgFName in os.listdir("."):
         if cfgFName.startswith("cfg") and cfgFName.endswith(".cfg"):
-            processing(cfgFName)
+            log.info('----------------------- Processing '+cfgFName )
+            cfg = config_read(cfgFName)
+            filename_in = cfg.get('basic','filename_in')
+            if rc_download==True or is_file_fresh( filename_in, int(cfg.get('basic','срок годности'))):
+                convert_excel2csv(cfg)
+
 
 
 if __name__ == '__main__':
     myName = os.path.basename(os.path.splitext(sys.argv[0])[0])
-    mydir    = os.path.dirname (sys.argv[0])
+    mydir = os.path.dirname (sys.argv[0])
     print(mydir, myName)
-    main( myName)
+    main(myName)
