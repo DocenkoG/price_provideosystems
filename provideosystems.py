@@ -7,11 +7,11 @@ import sys
 import configparser
 import time
 import shutil
-import openpyxl                      # Для .xlsx
-#import xlrd                          # для .xls
+#import openpyxl                      # Для .xlsx
+import xlrd                          # для .xls
 from   price_tools import getCellXlsx, getCell, quoted, dump_cell, currencyType, openX, sheetByName
 import csv
-import requests, lxml.html
+#import requests, lxml.html
 
 
 
@@ -57,6 +57,7 @@ def convert_excel2csv(cfg):
     sheetName = cfg.get('basic','sheetname')
     
     log.debug('Reading file ' + priceFName )
+    book = xlrd.open_workbook(priceFName.encode('cp1251'), formatting_info=True)
     sheet = sheetByName(fileName = priceFName, sheetName = sheetName)
     if not sheet :
         log.error("Нет листа "+sheetName+" в файле "+ priceFName)
@@ -87,19 +88,20 @@ def convert_excel2csv(cfg):
         print(ccc.font.name, ccc.font.sz, ccc.font.b, ccc.font.i, ccc.font.color.rgb, '------', ccc.fill.fgColor.rgb)
         print('------')
     '''
-    '''                                     # Блок проверки свойств для распознавания групп      XLS                                  
-    for i in range(0, 75):                                                         
-        xfx = sheet.cell_xf_index(i, 0)
+    '''                                     # Блок проверки свойств для распознавания групп      XLS
+    for i in range(1, 12):
+        xfx = sheet.cell_xf_index(i, 1)
+        book = xlrd.open_workbook(priceFName.encode('cp1251'), formatting_info=True)
         xf  = book.xf_list[xfx]
         bgci  = xf.background.pattern_colour_index
         fonti = xf.font_index
-        ccc = sheet.cell(i, 0)
+        ccc = sheet.cell(i, 1)
         if ccc.value == None :
             print (i, colSGrp, 'Пусто!!!')
             continue
                                          # Атрибуты шрифта для настройки конфига
         font = book.font_list[fonti]
-        print( '---------------------- Строка', i, '-----------------------', sheet.cell(i, 0).value)
+        print( '---------------------- Строка', i, '-----------------------', sheet.cell(i, 1).value)
         print( 'background_colour_index=',bgci)
         print( 'fonti=', fonti, '           xf.alignment.indent_level=', xf.alignment.indent_level)
         print( 'bold=', font.bold)
@@ -112,30 +114,60 @@ def convert_excel2csv(cfg):
     '''
 
     recOut  ={}
-#    for i in range(1, sheet.max_row +1) :                               # xlsx
+    grp = ''
+    subgrp = ''
+    subgrp2 = ''
+#   for i in range(1, sheet.max_row +1) :                               # xlsx
     for i in range(1, sheet.nrows) :                                     # xls
         i_last = i
         try:
             #impValues = getXlsxString(sheet, i, in_cols_j)              # xlsx
             impValues = getXlsString(sheet, i, in_cols_j)                # xls
             #print( impValues )
-            if impValues['цена1']=='0': # (ccc.value == None) or (ccc2.value == None) :     # Пустая строка
-                pass
-                #print( 'Пустая строка. i=',i, impValues )
-            elif impValues['код_'] == '' or impValues['код_'] == 'Арт.' :  # Пустая строка
-                print (i, 'Пусто!!!')
+            xfx = sheet.cell_xf_index(i, 1)
+            xf = book.xf_list[xfx]
+            bgci = xf.background.pattern_colour_index
+            fonti = xf.font_index
+
+            if (impValues['код_'] in ('', 'Partnumber', 'Part No.') or
+                impValues['цена1'] in ('SRP, $','RRP, $', 'Цена MSRP')): # Пустая строка
                 continue
-            else :                                                      # Обычная строка
-                for outColName in out_template.keys() :
+            if impValues['цена1'] == '0':                                # Вместо отсутствия цены ставим цену 0.1
+                impValues['цена1'] = '0.1'
+            if cfg.has_option('cols_in', 'примечание') and impValues['примечание'] != '':      # Примечание
+                impValues['примечание'] = ' / (' + impValues['примечание'] + ')'               # обрамляем скобками
+            if "\n" in impValues['код_']:                                # В многострочном коде берем
+                p = impValues['код_'].rfind("\n")                        # последнюю строку
+                impValues['код_'] = impValues['код_'][p+1:]
+
+            if cfg.has_option('cols_in', 'подгруппа') and impValues['код_'] == '' and impValues['подгруппа'] != '':
+                subgrp = impValues['подгруппа']                          # Подгруппа
+                continue
+            elif bgci == 43:                                             # Подгруппа желтая
+                subgrp2 = impValues['группа_']
+                continue
+            elif bgci == 22:                                             # Группа
+                subgrp = ''
+                grp = impValues['группа_']
+            else :                                                       # Обычная строка
+                if cfg.has_option('cols_in', 'группа_'):
+                    impValues['группа_'] = grp
+                if cfg.has_option('cols_in', 'подгруппа'):
+                    impValues['подгруппа'] = subgrp
+                for outColName in out_template.keys():
                     shablon = out_template[outColName]
                     for key in impValues.keys():
-                        if shablon.find(key) >= 0 :
+                        if shablon.find(key) >= 0:
                             shablon = shablon.replace(key, impValues[key])
-                    if (outColName == 'закупка') and ('*' in shablon) :
-                        p = shablon.find("*")
-                        vvv1 = float(shablon[:p])
-                        vvv2 = float(shablon[p+1:])
-                        shablon = str(round(vvv1 * vvv2, 2))
+                    if (outColName == 'закупка') and ('*' in shablon):
+                        if impValues['цена1'] == '0.1':
+                            shablon = '0.1'
+                        else:
+                            p = shablon.find("*")
+                            vvv1 = float(shablon[:p])
+                            vvv2 = float(shablon[p+1:])
+                            shablon = str(round(vvv1 * vvv2, 2))
+
                     recOut[outColName] = shablon.strip()
 
                 csvWriter.writerow(recOut)
