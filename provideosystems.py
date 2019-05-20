@@ -184,19 +184,22 @@ def convert_excel2csv(cfg):
 
 
 
-def download( cfg ):
+def download(cfg):
     from selenium import webdriver
     from selenium.webdriver.common.keys import Keys
     from selenium.webdriver.remote.remote_connection import LOGGER
     LOGGER.setLevel(logging.WARNING)
      
     retCode     = False
-    filename_new= cfg.get('download','filename_new')
-    filename_old= cfg.get('download','filename_old')
+    filename1_new= cfg.get('basic','filename1_new')
+    filename2_new= cfg.get('basic','filename2_new')
+    filename1_old= cfg.get('basic','filename1_old')
+    filename2_old= cfg.get('basic','filename2_old')
     login       = cfg.get('download','login'    )
     password    = cfg.get('download','password' )
     url_lk      = cfg.get('download','url_lk'   )
-    url_file    = cfg.get('download','url_file' )
+    url_file1   = cfg.get('download','url_file1')
+    url_file2   = cfg.get('download','url_file2')
 
     download_path= os.path.join(os.getcwd(), 'tmp')
     if not os.path.exists(download_path):
@@ -207,11 +210,11 @@ def download( cfg ):
     dir_befo_download = set(os.listdir(download_path))
         
     if os.path.exists('geckodriver.log') : os.remove('geckodriver.log')
-    try:
-        ffprofile = webdriver.FirefoxProfile()
-        ffprofile.set_preference("browser.download.dir", download_path)
-        ffprofile.set_preference("browser.download.folderList",2);
-        ffprofile.set_preference("browser.helperApps.neverAsk.saveToDisk", 
+#    try:
+    ffprofile = webdriver.FirefoxProfile()
+    ffprofile.set_preference("browser.download.dir", download_path)
+    ffprofile.set_preference("browser.download.folderList",2);
+    ffprofile.set_preference("browser.helperApps.neverAsk.saveToDisk",
                 ",application/octet-stream" + 
                 ",application/vnd.ms-excel" + 
                 ",application/vnd.msexcel" + 
@@ -267,90 +270,86 @@ def download( cfg ):
                 ",application/xspf+xml" +
                 ",application/xv+xml" +
                 ",application/excel")
-        if os.name == 'posix':
+    if os.name == 'posix':
             #driver = webdriver.Firefox(ffprofile, executable_path=r'/usr/local/Cellar/geckodriver/0.19.1/bin/geckodriver')
             driver = webdriver.Firefox(ffprofile, executable_path=r'/usr/local/bin/geckodriver')
-        elif os.name == 'nt':
+    elif os.name == 'nt':
             driver = webdriver.Firefox(ffprofile)
-        driver.implicitly_wait(10)
-        
-        driver.get(url_lk)
-        time.sleep(2)
-        driver.find_element_by_name("login").click()
-        driver.find_element_by_name("login").clear()
-        driver.find_element_by_name("login").send_keys(login)
-        driver.find_element_by_name("pass").click()
-        driver.find_element_by_name("pass").clear()
-        driver.find_element_by_name("pass").send_keys(password)
-        driver.find_element_by_id("partners_auth_btn").click()
-        time.sleep(1)
-        driver.get(url_file)
-        time.sleep(5)
-        #driver.close()
-        driver.find_element_by_link_text(u"Выход").click()        
-        driver.quit()
+    driver.implicitly_wait(10)
+    driver.set_page_load_timeout(70)
 
+    driver.get('http://www.provis.ru/partners/dealer/')
+    time.sleep(2)
+    driver.find_element_by_name("login").click()
+    driver.find_element_by_name("login").clear()
+    driver.find_element_by_name("login").send_keys(login)
+    driver.find_element_by_name("pass").click()
+    driver.find_element_by_name("pass").clear()
+    driver.find_element_by_name("pass").send_keys(password)
+    driver.find_element_by_id("partners_auth_btn").click()
+    time.sleep(1)
+    try:
+        driver.get(url_file1)
     except Exception as e:
         log.debug('Exception: <' + str(e) + '>')
+        print('-exept-error-',str(e))
+
+    time.sleep(5)
+    driver.set_page_load_timeout(15)
+    try:
+        driver.get(url_file2)
+    except Exception as e:
+        log.debug('Exception: <' + str(e) + '>')
+        print('-exept-error-', str(e))
+
+    time.sleep(5)
+    driver.find_element_by_link_text(u"Выход").click()
+    driver.quit()
+
 
     dir_afte_download = set(os.listdir(download_path))
     new_files = list( dir_afte_download.difference(dir_befo_download))
     print(new_files)
-    if len(new_files) == 0 :        
+    if len(new_files) < 2:
         log.error( 'Не удалось скачать файл прайса ')
         retCode= False
-    elif len(new_files)>1 :
+    elif len(new_files) > 2:
         log.error( 'Скачалось несколько файлов. Надо разбираться ...')
         retCode= False
     else:   
-        new_file = new_files[0]                                                     # загружен ровно один файл. 
+        new_file = new_files[0]                                                     # загруженo ровно два файл.
         new_ext  = os.path.splitext(new_file)[-1].lower()
         DnewFile = os.path.join( download_path,new_file)
         new_file_date = os.path.getmtime(DnewFile)
         log.info( 'Скачанный файл ' +new_file + ' имеет дату ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(new_file_date) ) )
-        
+
         print(new_ext)
         if new_ext in ('.xls','.xlsx','.xlsb','.xlsm','.csv'):
-            if os.path.exists( filename_new) and os.path.exists( filename_old): 
-                os.remove( filename_old)
-                os.rename( filename_new, filename_old)
-            if os.path.exists( filename_new) :
-                os.rename( filename_new, filename_old)
-            shutil.copy2( DnewFile, filename_new)
+            if os.path.exists( filename1_new) and os.path.exists( filename1_old):
+                os.remove( filename1_old)
+                os.rename( filename1_new, filename1_old)
+            if os.path.exists( filename1_new) :
+                os.rename( filename1_new, filename1_old)
+            shutil.copy2( DnewFile, filename1_new)
             retCode= True
 
-        elif new_ext == '.zip':  
-            # ветка устаревшая, не проверялась                                      # Архив. Обработка не завершена
-            log.debug( 'Zip-архив. Разархивируем.')
-            work_dir = os.getcwd()                                                  
-            os.chdir( os.path.join( download_path ))
-            dir_befo_download = set(os.listdir(os.getcwd()))
-            os.system('unzip -oj ' + new_file)
-            os.remove(new_file)   
-            dir_afte_download = set(os.listdir(os.getcwd()))
-            new_files = list( dir_afte_download.difference(dir_befo_download))
-            os.chdir(work_dir)
-            if len(new_files) == 1 :   
-                new_file = new_files[0]                                             # разархивирован ровно один файл. 
-                new_ext  = os.path.splitext(new_file)[-1]
-                DnewFile = os.path.join( download_path,new_file)
-                new_file_date = os.path.getmtime(DnewFile)
-                log.debug( 'Файл из архива ' +DnewFile + ' имеет дату ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(new_file_date) )     )
-                filename_in= cfg.get('basic','filename_in')
-                if os.path.exists( filename_new) and os.path.exists( filename_old): 
-                    os.remove( filename_old)
-                    os.rename( filename_new, filename_old)
-                if os.path.exists( filename_new) :
-                    os.rename( filename_new, filename_old)
-                shutil.copy2( DnewFile, filename_new)
-                retCode=True
+        new_file = new_files[1]  # загруженo ровно два файл.
+        new_ext = os.path.splitext(new_file)[-1].lower()
+        DnewFile = os.path.join(download_path, new_file)
+        new_file_date = os.path.getmtime(DnewFile)
+        log.info('Скачанный файл ' + new_file + ' имеет дату ' + time.strftime("%Y-%m-%d %H:%M:%S",
+                                                                               time.localtime(new_file_date)))
 
-            elif len(new_files) >1 :
-                log.debug( 'В архиве не единственный файл. Надо разбираться.')
-                retCode=False
-            else:
-                log.debug( 'Нет новых файлов после разархивации. Загляни в папку юниттеста поставщика.')
-                retCode=False
+        print(new_ext)
+        if new_ext in ('.xls', '.xlsx', '.xlsb', '.xlsm', '.csv'):
+            if os.path.exists(filename2_new) and os.path.exists(filename2_old):
+                os.remove(filename2_old)
+                os.rename(filename2_new, filename2_old)
+            if os.path.exists(filename2_new):
+                os.rename(filename2_new, filename2_old)
+            shutil.copy2(DnewFile, filename2_new)
+            retCode = True
+
     return retCode
 
 
@@ -415,13 +414,13 @@ def main(dealerName):
     log.info('          ' + dealerName)
 
     rc_download = False
-    if  os.path.exists('getting.cfg'):
+    if os.path.exists('getting.cfg'):
         cfg = config_read('getting.cfg')
-        filename_new = cfg.get('basic','filename_new')
+        filename1_new = cfg.get('basic','filename1_new')
 
         if cfg.has_section('download'):
             rc_download = download(cfg)
-        if not(rc_download==True or is_file_fresh( filename_new, int(cfg.get('basic','срок годности')))):
+        if not(rc_download==True or is_file_fresh( filename1_new, int(cfg.get('basic','срок годности')))):
             return False
 
     for cfgFName in os.listdir("."):
