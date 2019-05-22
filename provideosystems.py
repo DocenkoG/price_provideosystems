@@ -294,8 +294,25 @@ def download(cfg):
         log.debug('Exception: <' + str(e) + '>')
         print('-exept-error-',str(e))
 
+    dir_afte_download = set(os.listdir(download_path))
+    new_files = list( dir_afte_download.difference(dir_befo_download))
+    print(new_files)
+    if len(new_files) < 1:
+        log.error( 'Не удалось скачать файл прайса ' + filename1_new)
+        retCode= False
+    elif len(new_files) > 1:
+        log.error( 'Скачалось несколько файлов. Надо разбираться ...')
+        retCode= False
+    else:
+        new_file = new_files[0]                                                     # загруженo ровно два файл.
+        new_ext  = os.path.splitext(new_file)[-1].lower()
+        DnewFile1 = os.path.join( download_path,new_file)
+        new_file_date = os.path.getmtime(DnewFile1)
+        log.info( 'Скачанный файл ' +new_file + ' имеет дату ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(new_file_date) ) )
+
     time.sleep(5)
     driver.set_page_load_timeout(15)
+    dir_befo_download = set(os.listdir(download_path))
     try:
         driver.get(url_file2)
     except Exception as e:
@@ -306,49 +323,36 @@ def download(cfg):
     driver.find_element_by_link_text(u"Выход").click()
     driver.quit()
 
-
     dir_afte_download = set(os.listdir(download_path))
-    new_files = list( dir_afte_download.difference(dir_befo_download))
-    print(new_files)
-    if len(new_files) < 2:
-        log.error( 'Не удалось скачать файл прайса ')
-        retCode= False
-    elif len(new_files) > 2:
-        log.error( 'Скачалось несколько файлов. Надо разбираться ...')
-        retCode= False
-    else:   
+    new_files = list(dir_afte_download.difference(dir_befo_download))
+    print(new_ext)
+    if len(new_files) < 1:
+        log.error('Не удалось скачать файл прайса ' + filename2_new)
+        retCode = False
+    elif len(new_files) > 1:
+        log.error('Скачалось несколько файлов. Надо разбираться ...')
+        retCode = False
+    else:
         new_file = new_files[0]                                                     # загруженo ровно два файл.
         new_ext  = os.path.splitext(new_file)[-1].lower()
-        DnewFile = os.path.join( download_path,new_file)
-        new_file_date = os.path.getmtime(DnewFile)
+        DnewFile2 = os.path.join( download_path,new_file)
+        new_file_date = os.path.getmtime(DnewFile2)
         log.info( 'Скачанный файл ' +new_file + ' имеет дату ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(new_file_date) ) )
 
-        print(new_ext)
-        if new_ext in ('.xls','.xlsx','.xlsb','.xlsm','.csv'):
-            if os.path.exists( filename1_new) and os.path.exists( filename1_old):
-                os.remove( filename1_old)
-                os.rename( filename1_new, filename1_old)
-            if os.path.exists( filename1_new) :
-                os.rename( filename1_new, filename1_old)
-            shutil.copy2( DnewFile, filename1_new)
-            retCode= True
+    if os.path.exists( filename1_new) and os.path.exists( filename1_old):
+        os.remove( filename1_old)
+        os.rename( filename1_new, filename1_old)
+    if os.path.exists( filename1_new) :
+        os.rename( filename1_new, filename1_old)
+    shutil.copy2( DnewFile1, filename1_new)
 
-        new_file = new_files[1]  # загруженo ровно два файл.
-        new_ext = os.path.splitext(new_file)[-1].lower()
-        DnewFile = os.path.join(download_path, new_file)
-        new_file_date = os.path.getmtime(DnewFile)
-        log.info('Скачанный файл ' + new_file + ' имеет дату ' + time.strftime("%Y-%m-%d %H:%M:%S",
-                                                                               time.localtime(new_file_date)))
-
-        print(new_ext)
-        if new_ext in ('.xls', '.xlsx', '.xlsb', '.xlsm', '.csv'):
-            if os.path.exists(filename2_new) and os.path.exists(filename2_old):
-                os.remove(filename2_old)
-                os.rename(filename2_new, filename2_old)
-            if os.path.exists(filename2_new):
-                os.rename(filename2_new, filename2_old)
-            shutil.copy2(DnewFile, filename2_new)
-            retCode = True
+    if os.path.exists(filename2_new) and os.path.exists(filename2_old):
+        os.remove(filename2_old)
+        os.rename(filename2_new, filename2_old)
+    if os.path.exists(filename2_new):
+        os.rename(filename2_new, filename2_old)
+    shutil.copy2(DnewFile2, filename2_new)
+    retCode = True
 
     return retCode
 
