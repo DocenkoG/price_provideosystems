@@ -50,8 +50,59 @@ def getXlsxString(sh, i, in_columns_j):
     return impValues
 
 
+def read_sklad_data():
+    cfg = config_read('sklad.cfg')
+    priceFName = 'new_provis_sklad.xls'
+    sheetName = 'sklad'
+    log.debug('Reading file ' + priceFName)
+    book = xlrd.open_workbook(priceFName.encode('cp1251'), formatting_info=True)
+    sheet = sheetByName(fileName=priceFName, sheetName=sheetName)
+    if not sheet:
+        log.error("Нет листа " + sheetName + " в файле " + priceFName)
+        return False
+    log.debug("Sheet   " + sheetName)
+    out_cols = cfg.options("cols_out")
+    in_cols = cfg.options("cols_in")
+    out_template = {}
+    for vName in out_cols:
+        out_template[vName] = cfg.get("cols_out", vName)
+    in_cols_j = {}
+    for vName in in_cols:
+        in_cols_j[vName] = cfg.getint("cols_in", vName)
 
-def convert_excel2csv(cfg):
+    recOut = {}
+    sklad_data = {}
+    for i in range(1, sheet.nrows):  # xls
+        i_last = i
+        try:
+            impValues = getXlsString(sheet, i, in_cols_j)  # xls
+            if (impValues['код_'] in ('', 'Partnumber', 'Part No.')):  # Пустая строка
+                continue
+            else:                                                      # Обычная строка
+                for outColName in out_template.keys():
+                    shablon = out_template[outColName]
+                    for key in impValues.keys():
+                        if shablon.find(key) >= 0:
+                            shablon = shablon.replace(key, impValues[key])
+
+                    recOut[outColName] = shablon.strip()
+
+                sklad_data[impValues['код_']] = recOut['наличие']
+
+        except Exception as e:
+            print(e)
+            if str(e) == "'NoneType' object has no attribute 'rgb'":
+                pass
+            else:
+                log.debug('Exception: <' + str(e) + '> при обработке строки ' + str(i) + '.')
+
+    log.info('Обработано ' + str(i_last) + ' строк.')
+    print(sklad_data)
+    return sklad_data
+
+
+
+def convert_excel2csv(cfg, sklad_data):
     csvFName  = cfg.get('basic','filename_out')
     priceFName= cfg.get('basic','filename_in')
     sheetName = cfg.get('basic','sheetname')
@@ -170,6 +221,10 @@ def convert_excel2csv(cfg):
 
                     recOut[outColName] = shablon.strip()
 
+                try:
+                    recOut['наличие'] = sklad_data[impValues['код_']]
+                except Exception as e:
+                    recOut['наличие'] = ''
                 csvWriter.writerow(recOut)
 
         except Exception as e:
@@ -427,13 +482,14 @@ def main(dealerName):
         if not(rc_download==True or is_file_fresh( filename1_new, int(cfg.get('basic','срок годности')))):
             return False
 
+    sklad_data = read_sklad_data()
     for cfgFName in os.listdir("."):
         if cfgFName.startswith("cfg") and cfgFName.endswith(".cfg"):
             log.info('----------------------- Processing '+cfgFName )
             cfg = config_read(cfgFName)
             filename_in = cfg.get('basic','filename_in')
             if rc_download==True or is_file_fresh( filename_in, int(cfg.get('basic','срок годности'))):
-                convert_excel2csv(cfg)
+                convert_excel2csv(cfg, sklad_data)
 
 
 
