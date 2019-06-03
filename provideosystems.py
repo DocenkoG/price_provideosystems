@@ -72,13 +72,15 @@ def read_sklad_data():
 
     recOut = {}
     sklad_data = {}
-    for i in range(1, sheet.nrows):  # xls
+    for i in range(1, sheet.nrows):                                    # xls
         i_last = i
         try:
-            impValues = getXlsString(sheet, i, in_cols_j)  # xls
+            impValues = getXlsString(sheet, i, in_cols_j)              # xls
             if (impValues['код_'] in ('', 'Partnumber', 'Part No.')):  # Пустая строка
                 continue
             else:                                                      # Обычная строка
+                if impValues['транзит_'] != '':
+                    impValues['транзит_'] = 'транзит ' + impValues['транзит_'] + ' неделя'
                 for outColName in out_template.keys():
                     shablon = out_template[outColName]
                     for key in impValues.keys():
