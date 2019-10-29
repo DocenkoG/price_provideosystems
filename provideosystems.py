@@ -368,17 +368,21 @@ def download(cfg):
         log.info( 'Скачанный файл ' +new_file + ' имеет дату ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(new_file_date) ) )
 
     time.sleep(5)
-    driver.set_page_load_timeout(15)
     dir_befo_download = set(os.listdir(download_path))
     try:
+        driver.set_page_load_timeout(15)
         driver.get(url_file2)
     except Exception as e:
         log.debug('Exception: <' + str(e) + '>')
         print('-exept-error-', str(e))
 
     time.sleep(5)
-    driver.find_element_by_link_text(u"Выход").click()
-    driver.quit()
+#    driver.find_element_by_link_text(u"Выход").click()
+    try:
+        driver.quit()
+    except Exception as e:
+        log.debug('Exception: <' + str(e) + '>')
+        print('-exept-error-', str(e))
 
     dir_afte_download = set(os.listdir(download_path))
     new_files = list(dir_afte_download.difference(dir_befo_download))
@@ -480,7 +484,7 @@ def main(dealerName):
         filename1_new = cfg.get('basic','filename1_new')
 
         if cfg.has_section('download'):
-            rc_download = download(cfg)
+            rc_download =False                        # download(cfg)
         if not(rc_download==True or is_file_fresh( filename1_new, int(cfg.get('basic','срок годности')))):
             return False
 
