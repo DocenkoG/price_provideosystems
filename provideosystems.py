@@ -484,7 +484,7 @@ def main(dealerName):
         filename1_new = cfg.get('basic','filename1_new')
 
         if cfg.has_section('download'):
-            rc_download =False                        # download(cfg)
+            rc_download = download(cfg)
         if not(rc_download==True or is_file_fresh( filename1_new, int(cfg.get('basic','срок годности')))):
             return False
 
