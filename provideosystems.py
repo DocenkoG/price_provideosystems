@@ -7,7 +7,7 @@ import sys
 import configparser
 import time
 import shutil
-#import openpyxl                      # Для .xlsx
+import openpyxl                      # Для .xlsx
 import xlrd                          # для .xls
 from   price_tools import getCellXlsx, getCell, quoted, dump_cell, currencyType, openX, sheetByName
 import csv
@@ -50,13 +50,15 @@ def getXlsxString(sh, i, in_columns_j):
     return impValues
 
 
-def read_sklad_data():
+def read_sklad_data(cfg0):
+    priceFName = cfg0.get('basic', 'filename2_new')
     cfg = config_read('sklad.cfg')
-    priceFName = 'new_provis_sklad.xls'
     sheetName = 'sklad'
     log.debug('Reading file ' + priceFName)
-    book = xlrd.open_workbook(priceFName.encode('cp1251'), formatting_info=True)
-    sheet = sheetByName(fileName=priceFName, sheetName=sheetName)
+    book, sheet = sheetByName(fileName = priceFName, sheetName = sheetName)
+    if not sheet:
+        log.error("Нет листа "+sheetName+" в файле "+ priceFName)
+        return False
     if not sheet:
         log.error("Нет листа " + sheetName + " в файле " + priceFName)
         return False
@@ -72,15 +74,17 @@ def read_sklad_data():
 
     recOut = {}
     sklad_data = {}
-    for i in range(1, sheet.nrows):                                    # xls
+    for i in range(1, sheet.max_row + 1):                               # xlsx
+#    for i in range(1, sheet.nrows):                                     # xls
         i_last = i
         try:
-            impValues = getXlsString(sheet, i, in_cols_j)              # xls
+            impValues = getXlsxString(sheet, i, in_cols_j)  # xlsx
+#            impValues = getXlsString(sheet, i, in_cols_j)              # xls
             if (impValues['код_'] in ('', 'Partnumber', 'Part No.')):  # Пустая строка
                 continue
             else:                                                      # Обычная строка
                 if impValues['транзит_'] != '':
-                    impValues['транзит_'] = 'транзит ' + impValues['транзит_'] + ' неделя'
+                    impValues['транзит_'] = 'транзит ' + impValues['транзит_']
                 for outColName in out_template.keys():
                     shablon = out_template[outColName]
                     for key in impValues.keys():
@@ -110,8 +114,10 @@ def convert_excel2csv(cfg, sklad_data):
     sheetName = cfg.get('basic','sheetname')
     
     log.debug('Reading file ' + priceFName )
-    book = xlrd.open_workbook(priceFName.encode('cp1251'), formatting_info=True)
-    sheet = sheetByName(fileName = priceFName, sheetName = sheetName)
+#    book = xlrd.open_workbook(priceFName.encode('cp1251'), formatting_info=True)
+#    sheet = sheetByName(fileName = priceFName, sheetName = sheetName)
+    book, sheet = sheetByName(fileName=priceFName, sheetName=sheetName)
+
     if not sheet :
         log.error("Нет листа "+sheetName+" в файле "+ priceFName)
         return False
@@ -270,70 +276,40 @@ def download(cfg):
 #    try:
     ffprofile = webdriver.FirefoxProfile()
     ffprofile.set_preference("browser.download.dir", download_path)
-    ffprofile.set_preference("browser.download.folderList",2);
+    ffprofile.set_preference("browser.download.folderList",2)
+    ffprofile.set_preference("browser.download.manager.alertOnEXEOpen", False)
+    ffprofile.set_preference("browser.download.manager.closeWhenDone", True)
+    ffprofile.set_preference("browser.download.manager.focusWhenStarting", False)
+    ffprofile.set_preference("browser.download.manager.showWhenStarting", False)
+    ffprofile.set_preference("browser.helperApps.alwaysAsk.force", False)
+    ffprofile.set_preference("pdfjs.disabled", True)
     ffprofile.set_preference("browser.helperApps.neverAsk.saveToDisk",
-                ",application/octet-stream" + 
-                ",application/vnd.ms-excel" + 
-                ",application/vnd.msexcel" + 
+                ",application/vnd.msexcel" +
                 ",application/x-excel" + 
                 ",application/x-msexcel" + 
                 ",application/zip" + 
-                ",application/xls" + 
+                ",application/xls" +
+                ",application/x-zip" +
+                ",application/x-zip-compressed" +
+                ",application/octet-stream" +
+                ",application/zip" +
+                ",application/x-msdownload" +
                 ",application/vnd.ms-excel" +
                 ",application/vnd.ms-excel.addin.macroenabled.12" +
                 ",application/vnd.ms-excel.sheet.macroenabled.12" +
                 ",application/vnd.ms-excel.template.macroenabled.12" +
                 ",application/vnd.ms-excelsheet.binary.macroenabled.12" +
-                ",application/vnd.ms-fontobject" +
-                ",application/vnd.ms-htmlhelp" +
-                ",application/vnd.ms-ims" +
-                ",application/vnd.ms-lrm" +
-                ",application/vnd.ms-officetheme" +
-                ",application/vnd.ms-pki.seccat" +
-                ",application/vnd.ms-pki.stl" +
-                ",application/vnd.ms-word.document.macroenabled.12" +
-                ",application/vnd.ms-word.template.macroenabed.12" +
-                ",application/vnd.ms-works" +
-                ",application/vnd.ms-wpl" +
-                ",application/vnd.ms-xpsdocument" +
-                ",application/vnd.openofficeorg.extension" +
-                ",application/vnd.openxmformats-officedocument.wordprocessingml.document" +
-                ",application/vnd.openxmlformats-officedocument.presentationml.presentation" +
-                ",application/vnd.openxmlformats-officedocument.presentationml.slide" +
-                ",application/vnd.openxmlformats-officedocument.presentationml.slideshw" +
-                ",application/vnd.openxmlformats-officedocument.presentationml.template" +
                 ",application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" +
-                ",application/vnd.openxmlformats-officedocument.spreadsheetml.template" +
-                ",application/vnd.openxmlformats-officedocument.wordprocessingml.template" +
-                ",application/x-ms-application" +
-                ",application/x-ms-wmd" +
-                ",application/x-ms-wmz" +
-                ",application/x-ms-xbap" +
-                ",application/x-msaccess" +
-                ",application/x-msbinder" +
-                ",application/x-mscardfile" +
-                ",application/x-msclip" +
-                ",application/x-msdownload" +
-                ",application/x-msmediaview" +
-                ",application/x-msmetafile" +
-                ",application/x-mspublisher" +
-                ",application/x-msschedule" +
-                ",application/x-msterminal" +
-                ",application/x-mswrite" +
-                ",application/xml" +
-                ",application/xml-dtd" +
-                ",application/xop+xml" +
-                ",application/xslt+xml" +
-                ",application/xspf+xml" +
-                ",application/xv+xml" +
+                ",xls:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" +
                 ",application/excel")
+
     if os.name == 'posix':
             #driver = webdriver.Firefox(ffprofile, executable_path=r'/usr/local/Cellar/geckodriver/0.19.1/bin/geckodriver')
             driver = webdriver.Firefox(ffprofile, executable_path=r'/usr/local/bin/geckodriver')
     elif os.name == 'nt':
             driver = webdriver.Firefox(ffprofile)
     driver.implicitly_wait(10)
-    driver.set_page_load_timeout(70)
+    driver.set_page_load_timeout(15)
 
     driver.get('http://www.provis.ru/partners/dealer/')
     time.sleep(2)
@@ -361,7 +337,7 @@ def download(cfg):
         log.error( 'Скачалось несколько файлов. Надо разбираться ...')
         retCode= False
     else:
-        new_file = new_files[0]                                                     # загруженo ровно два файл.
+        new_file = new_files[0]                                                     # загружен ровно один файл.
         new_ext  = os.path.splitext(new_file)[-1].lower()
         DnewFile1 = os.path.join( download_path,new_file)
         new_file_date = os.path.getmtime(DnewFile1)
@@ -370,8 +346,9 @@ def download(cfg):
     time.sleep(5)
     dir_befo_download = set(os.listdir(download_path))
     try:
-        driver.set_page_load_timeout(15)
+        driver.set_page_load_timeout(25)
         driver.get(url_file2)
+        # driver.FindElement(By.CssSelector("input[type='files']")).SendKeys("https://provis.ru/partners/dealer/sklad")
     except Exception as e:
         log.debug('Exception: <' + str(e) + '>')
         print('-exept-error-', str(e))
@@ -394,12 +371,13 @@ def download(cfg):
         log.error('Скачалось несколько файлов. Надо разбираться ...')
         retCode = False
     else:
-        new_file = new_files[0]                                                     # загруженo ровно два файл.
+        new_file = new_files[0]                                                     # загруженo ровно второй файл.
         new_ext  = os.path.splitext(new_file)[-1].lower()
         DnewFile2 = os.path.join( download_path,new_file)
         new_file_date = os.path.getmtime(DnewFile2)
         log.info( 'Скачанный файл ' +new_file + ' имеет дату ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(new_file_date) ) )
 
+    print(filename1_new, filename2_new)
     if os.path.exists( filename1_new) and os.path.exists( filename1_old):
         os.remove( filename1_old)
         os.rename( filename1_new, filename1_old)
@@ -488,7 +466,7 @@ def main(dealerName):
         if not(rc_download==True or is_file_fresh( filename1_new, int(cfg.get('basic','срок годности')))):
             return False
 
-    sklad_data = read_sklad_data()
+    sklad_data = read_sklad_data(cfg)
     for cfgFName in os.listdir("."):
         if cfgFName.startswith("cfg") and cfgFName.endswith(".cfg"):
             log.info('----------------------- Processing '+cfgFName )
