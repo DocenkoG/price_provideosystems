@@ -19,7 +19,7 @@ def getXlsString(sh, i, in_columns_j):
     impValues = {}
     for item in in_columns_j.keys() :
         j = in_columns_j[item]-1
-        if item in ('закупка','продажа','цена1') :
+        if item in ('закупка','продажа','цена1','цена2') :
             if getCell(row=i, col=j, isDigit='N', sheet=sh).find('call') >=0 :
                 impValues[item] = '0.1'
             else :
@@ -309,9 +309,9 @@ def download(cfg):
     elif os.name == 'nt':
             driver = webdriver.Firefox(ffprofile)
     driver.implicitly_wait(10)
-    driver.set_page_load_timeout(15)
+    driver.set_page_load_timeout(25)
 
-    driver.get('http://www.provis.ru/partners/dealer/')
+    driver.get('https://provis.ru/partners/dealer/')
     time.sleep(2)
     driver.find_element_by_name("login").click()
     driver.find_element_by_name("login").clear()
