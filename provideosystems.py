@@ -311,7 +311,12 @@ def download(cfg):
     driver.implicitly_wait(10)
     driver.set_page_load_timeout(25)
 
-    driver.get('https://provis.ru/partners/dealer/')
+    try:
+        driver.get('https://provis.ru/partners/dealer/')
+    except Exception as e:
+        log.debug('Exception1: <' + str(e) + '>')
+        print('-exept-error-',str(e))
+
     time.sleep(2)
     driver.find_element_by_name("login").click()
     driver.find_element_by_name("login").clear()
@@ -319,12 +324,16 @@ def download(cfg):
     driver.find_element_by_name("pass").click()
     driver.find_element_by_name("pass").clear()
     driver.find_element_by_name("pass").send_keys(password)
-    driver.find_element_by_id("partners_auth_btn").click()
+    try:
+        driver.find_element_by_id("partners_auth_btn").click()
+    except Exception as e:
+        log.debug('Exception1: <' + str(e) + '>')
+        print('-exept-error-',str(e))
     time.sleep(1)
     try:
         driver.get(url_file1)
     except Exception as e:
-        log.debug('Exception: <' + str(e) + '>')
+        log.debug('Exception2: <' + str(e) + '>')
         print('-exept-error-',str(e))
 
     dir_afte_download = set(os.listdir(download_path))
