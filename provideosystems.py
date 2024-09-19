@@ -21,7 +21,7 @@ def getXlsString(sh, i, in_columns_j):
         j = in_columns_j[item]-1
         if item in ('закупка','продажа','цена1','цена2') :
             if getCell(row=i, col=j, isDigit='N', sheet=sh).find('call') >=0 :
-                impValues[item] = '0.1'
+                impValues[item] = '10'
             else :
                 impValues[item] = getCell(row=i, col=j, isDigit='Y', sheet=sh)
             #print(sh, i, sh.cell( row=i, column=j).value, sh.cell(row=i, column=j).number_format, currencyType(sh, i, j))
@@ -39,7 +39,7 @@ def getXlsxString(sh, i, in_columns_j):
         j = in_columns_j[item]
         if item in ('закупка','продажа','цена','цена1') :
             if getCellXlsx(row=i, col=j, isDigit='N', sheet=sh).find('call') >=0 :
-                impValues[item] = '0.1'
+                impValues[item] = '10'
             else :
                 impValues[item] = getCellXlsx(row=i, col=j, isDigit='Y', sheet=sh)
             #print(sh, i, sh.cell( row=i, column=j).value, sh.cell(row=i, column=j).number_format, currencyType(sh, i, j))
