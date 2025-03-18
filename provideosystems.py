@@ -7,8 +7,9 @@ import sys
 import configparser
 import time
 import shutil
-import openpyxl                      # Для .xlsx
-import xlrd                          # для .xls
+
+#import openpyxl                      # Для .xlsx
+#import xlrd                          # для .xls
 from   price_tools import getCellXlsx, getCell, quoted, dump_cell, currencyType, openX, sheetByName
 import csv
 #import requests, lxml.html
@@ -109,7 +110,8 @@ def read_sklad_data(cfg0):
 
 
 def convert_excel2csv(cfg, sklad_data):
-    csvFName  = cfg.get('basic','filename_out')
+    csvFNameRur  = cfg.get('basic','filename_out_rur')
+    csvFNameUsd  = cfg.get('basic','filename_out_usd')
     priceFName= cfg.get('basic','filename_in')
     sheetName = cfg.get('basic','sheetname')
     
@@ -135,9 +137,12 @@ def convert_excel2csv(cfg, sklad_data):
     #    discount[k] = (100 - int(discount[k]))/100
     #print(discount)
 
-    outFile = open( csvFName, 'w', newline='', encoding='CP1251', errors='replace')
-    csvWriter = csv.DictWriter(outFile, fieldnames=out_cols )
-    csvWriter.writeheader()
+    outFileRur = open( csvFNameRur, 'w', newline='', encoding='CP1251', errors='replace')
+    outFileUsd = open( csvFNameUsd, 'w', newline='', encoding='CP1251', errors='replace')
+    csvWriterRur = csv.DictWriter(outFileRur, fieldnames=out_cols )
+    csvWriterUsd = csv.DictWriter(outFileUsd, fieldnames=out_cols )
+    csvWriterRur.writeheader()
+    csvWriterUsd.writeheader()
 
     '''                                     # Блок проверки свойств для распознавания групп      XLSX                                  
     for i in range(2393, 2397):                                                         
@@ -233,7 +238,15 @@ def convert_excel2csv(cfg, sklad_data):
                     recOut['наличие'] = sklad_data[impValues['код_']]
                 except Exception as e:
                     recOut['наличие'] = ''
-                csvWriter.writerow(recOut)
+
+                if impValues['цена1'] == '0.1':
+                    recOut['валюта'] = 'USD'
+                if recOut['валюта'] == 'RUR':
+                    csvWriterRur.writerow(recOut)
+                elif recOut['валюта'] == 'USD':
+                    csvWriterUsd.writerow(recOut)
+                else:
+                    log.error('нераспознана валюта "%s" для товара "%s"', recOut['валюта'], recOut['код производителя'])
 
         except Exception as e:
             print(e)
@@ -243,7 +256,8 @@ def convert_excel2csv(cfg, sklad_data):
                 log.debug('Exception: <' + str(e) + '> при обработке строки ' + str(i) +'.' )
 
     log.info('Обработано ' +str(i_last)+ ' строк.')
-    outFile.close()
+    outFileRur.close()
+    outFileUsd.close()
 
 
 
@@ -252,7 +266,7 @@ def download(cfg):
     from selenium.webdriver.common.keys import Keys
     from selenium.webdriver.remote.remote_connection import LOGGER
     LOGGER.setLevel(logging.WARNING)
-     
+
     retCode     = False
     filename1_new= cfg.get('basic','filename1_new')
     filename2_new= cfg.get('basic','filename2_new')
