@@ -194,9 +194,10 @@ def convert_excel2csv(cfg, sklad_data):
             fonti = xf.font_index
 
             if (impValues['код_'] in ('', 'Partnumber', 'Part No.') or
-                impValues['цена1'] in ('SRP, $','RRP, $', 'Цена MSRP')): # Пустая строка
+                impValues['цена1'] in ('SRP, $','RRP, $', 'Цена MSRP') or # Пустая строка
+                'demo' in ( impValues['description'].lower())):       # игнорируем строку
                 continue
-            if impValues['цена1'] == '0':                                # Вместо отсутствия цены ставим цену 0.1
+            if impValues['цена1'] == '0':                                 # Вместо отсутствия цены ставим цену 0.1
                 impValues['цена1'] = '0.1'
             if cfg.has_option('cols_in', 'примечание') and impValues['примечание'] != '':      # Примечание
                 impValues['примечание'] = ' / (' + impValues['примечание'] + ')'               # обрамляем скобками
