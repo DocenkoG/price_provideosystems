@@ -196,6 +196,7 @@ def convert_excel2csv(cfg, sklad_data):
             if (impValues['код_'] in ('', 'Partnumber', 'Part No.') or
                 impValues['цена1'] in ('SRP, $','RRP, $', 'Цена MSRP') or # Пустая строка
                 'demo' in ( impValues['description'].lower())):       # игнорируем строку
+                log.debug(impValues['код_'] + ' ' + impValues['цена1'] + '  Пустая строка')
                 continue
             if impValues['цена1'] == '0':                                 # Вместо отсутствия цены ставим цену 0.1
                 impValues['цена1'] = '0.1'
@@ -207,12 +208,15 @@ def convert_excel2csv(cfg, sklad_data):
 
             if cfg.has_option('cols_in', 'подгруппа') and impValues['код_'] == '' and impValues['подгруппа'] != '':
                 subgrp = impValues['подгруппа']                          # Подгруппа
+                log.debug(impValues['код_']+' '+ impValues['цена1'] + '  Подгруппа')
                 continue
-            elif bgci == 43:                                             # Подгруппа желтая
-                subgrp2 = impValues['группа_']
-                continue
+#            elif bgci == 43:                                             # Подгруппа желтая
+#                log.debug(impValues['код_'] + ' ' + impValues['цена1'] + '  Подгруппа желтая')
+#                subgrp2 = impValues['группа_']
+#                continue
             elif bgci == 22:                                             # Группа
                 subgrp = ''
+                log.debug(impValues['код_'] + ' ' + impValues['цена1'] + '  Группа')
                 grp = impValues['группа_']
             else :                                                       # Обычная строка
                 if cfg.has_option('cols_in', 'группа_'):
